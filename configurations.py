@@ -1,0 +1,132 @@
+chosen_conf=BATS()
+
+class Configuration:
+    #below you need to set-up as appropriate
+
+    path_observations = "./L4_observations.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
+
+    model_directory = "/work/jos/eat/1D_configuration/L4/large_ensemble"    # path to folder with the model ensemble simulations - the model outputs are picked across the ensemble from there
+
+    perturbed_parameters_listed = ["B1_rR2", "B1_sR1", "P1_alpha", "B1_rR3", "B1_frR3", "B1_srs", "P2_alpha", "P1_sum", "B1_q10", "B1_pu", "P2_srs", "P1_srs", "P1_xqcn", "P2_xqcn", "P2_xqn", "P1_xqn"]   # parameters calibrated..
+
+    observed_types = ["ChlTot", "O2", "chl_f", "nit", "phos", "sil", "amm"]   # observed types of variables
+
+    model_types = ["total_chlorophyll_calculator_result_1", "O2_o", "total_chlorophyll_calculator_result_2", "N3_n", "N1_p", "N5_s", "N4_n"]  # model outputs corresponding to the observed variables
+
+    start_obs_index = 9*365+2   # since the observational files start on the 01/01/1998, to match up the model simulation period, the observations need to be extracted in a certain range. This is the start of the simulation period after spin up in number of days since 01/01/1998
+
+    length_of_data = 14*365-100  # length of simulation period in number of days
+
+    model_start = 365-31+4*365+1    # this is the start of simulation period after spin up 
+
+    n_ens_members = 5000 # number of model ensemble members
+
+
+class OGSConf(Configuration):
+    #below you need to set-up as appropriate
+
+    path_observations = "/g100_work/OGS_test2528/sspada00/SEAMLESS/BOUSSOLE_observations_w_sat.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
+
+    model_directory = "/g100_scratch/userexternal/ateruzzi/WP6_ms/BOUSSOLE/LARGE_ENSEMBLE_SIMULATIONS/BOUSSOLE_allparameters"    # path to folder with the model ensemble simulations - the model outputs are picked across the ensemble from there
+
+    perturbed_parameters_listed = [
+        'P3_p_q10',
+        'B1_p_pu_ra',
+        'P1_p_sum',
+        'P2_p_q10',
+        'P1_p_alpha_chl',
+        'P3_p_sum',
+        'Z5_p_minfood',
+        'Z5_p_chuc',
+        'P1_p_q10',
+        'P1_p_qup',
+        'P1_p_qlcPPY',
+        'P3_p_alpha_chl',
+        'P2_p_alpha_chl',
+        'P1_p_xqp',
+        'P3_p_qlcPPY',
+        ]   # parameters calibrated..
+    
+    _dict_model_variables = {
+        'Oxygen': 'O2_o',
+        'Nitrate': 'N3_n',
+        'Phosphate': 'N1_p',
+        'Silicate': 'N5_s',
+        'Satellite_chlorophyll': 'total_chlorophyll',
+        'Insitu_chlorophyll': 'total_chlorophyll',
+        }
+    
+    observed_types = [
+        'Oxygen',
+        'Nitrate',
+        'Phosphate',
+        'Silicate',
+        'Satellite_chlorophyll',
+        # 'Insitu_chlorophyll',
+        ]   # observed types of variables
+
+    model_types = None  # model outputs corresponding to the observed variables
+
+    start_obs_index = 9*365+2   # since the observational files start on the 01/01/1998, to match up the model simulation period, the observations need to be extracted in a certain range. This is the start of the simulation period after spin up in number of days since 01/01/1998
+
+    length_of_data = 14*365+4  # length of simulation period in number of days
+
+    model_start = 365    # this is the start of simulation period after spin up 
+
+    n_ens_members = 2000 # number of model ensemble members
+    
+    def __init__(self):        
+        self.model_types=[self._dict_model_variables['observed_type'] for observed_type in self.observed_types]
+
+
+class Boussole(OGSConf):
+    path_observations = "/g100_work/OGS_test2528/sspada00/SEAMLESS/BOUSSOLE_observations_w_sat.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
+
+    model_directory = "/g100_scratch/userexternal/ateruzzi/WP6_ms/BOUSSOLE/LARGE_ENSEMBLE_SIMULATIONS/BOUSSOLE_allparameters"    # path to folder with the model ensemble simulations - the model outputs are picked across the ensemble from there
+    
+    observed_types = [
+        'Oxygen',
+        'Nitrate',
+        'Phosphate',
+        'Silicate',
+        'Satellite_chlorophyll',
+        # 'Insitu_chlorophyll',
+        ]   # observed types of variables
+
+
+class BoussoleSatOnly(Boussole):
+    observed_types = [
+        # 'Oxygen',
+        # 'Nitrate',
+        # 'Phosphate',
+        # 'Silicate',
+        'Satellite_chlorophyll',
+        # 'Insitu_chlorophyll',
+        ]   # observed types of variables
+
+
+class BATS(OGSConf):
+    path_observations = "/g100_work/OGS_test2528/sspada00/SEAMLESS/BATS_observations_w_chl_all_2sigma.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
+
+    model_directory = "/g100_scratch/userexternal/ateruzzi/WP6_ms/BATS/LARGE_ENSEMBLE_SIMULATIONS/BATS_allparameters"    # path to folder with the model ensemble simulations - the model outputs are picked across the ensemble from there
+    
+    observed_types = [
+        'Oxygen',
+        'Nitrate',
+        'Phosphate',
+        'Silicate',
+        'Satellite_chlorophyll',
+        'Insitu_chlorophyll',
+        ]   # observed types of variables
+    
+
+class BATSSatOnly(BATS):
+    observed_types = [
+        # 'Oxygen',
+        # 'Nitrate',
+        # 'Phosphate',
+        # 'Silicate',
+        'Satellite_chlorophyll',
+        # 'Insitu_chlorophyll',
+        ]   # observed types of variables
+
