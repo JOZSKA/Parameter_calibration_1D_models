@@ -1,6 +1,8 @@
 chosen_conf=BATS()
 
 class Configuration:
+    name='Template'
+    
     #below you need to set-up as appropriate
 
     path_observations = "./L4_observations.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
@@ -20,9 +22,18 @@ class Configuration:
     model_start = 365-31+4*365+1    # this is the start of simulation period after spin up 
 
     n_ens_members = 5000 # number of model ensemble members
+    
+    
+    ######################################################
+    ##### obs_reduction and obs_perturbation section #####
+    ######################################################
+    
+    n_red_ens_members = 50  # this is the number of random realizations of sub-sampling of the observation data / of the perturbation noise
 
 
 class OGSConf(Configuration):
+    name='OGSConf'
+    
     #below you need to set-up as appropriate
 
     path_observations = "/g100_work/OGS_test2528/sspada00/SEAMLESS/BOUSSOLE_observations_w_sat.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
@@ -80,6 +91,8 @@ class OGSConf(Configuration):
 
 
 class Boussole(OGSConf):
+    name='Boussole'
+    
     path_observations = "/g100_work/OGS_test2528/sspada00/SEAMLESS/BOUSSOLE_observations_w_sat.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
 
     model_directory = "/g100_scratch/userexternal/ateruzzi/WP6_ms/BOUSSOLE/LARGE_ENSEMBLE_SIMULATIONS/BOUSSOLE_allparameters"    # path to folder with the model ensemble simulations - the model outputs are picked across the ensemble from there
@@ -95,6 +108,8 @@ class Boussole(OGSConf):
 
 
 class BoussoleSatOnly(Boussole):
+    name='BoussoleSatOnly'
+    
     observed_types = [
         # 'Oxygen',
         # 'Nitrate',
@@ -106,6 +121,8 @@ class BoussoleSatOnly(Boussole):
 
 
 class BATS(OGSConf):
+    name='BATS'
+    
     path_observations = "/g100_work/OGS_test2528/sspada00/SEAMLESS/BATS_observations_w_chl_all_2sigma.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
 
     model_directory = "/g100_scratch/userexternal/ateruzzi/WP6_ms/BATS/LARGE_ENSEMBLE_SIMULATIONS/BATS_allparameters"    # path to folder with the model ensemble simulations - the model outputs are picked across the ensemble from there
@@ -121,6 +138,8 @@ class BATS(OGSConf):
     
 
 class BATSSatOnly(BATS):
+    name='BATSSatOnly'
+    
     observed_types = [
         # 'Oxygen',
         # 'Nitrate',

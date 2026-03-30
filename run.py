@@ -71,9 +71,9 @@ def run(conf):
             optimal_parameter_values.update({parameter:parameter_value})
             
             
-    np.savetxt("RMSE_all.txt", RMSE)
+    np.savetxt(f"{conf.name}_RMSE_all.txt", RMSE)
 
-    w = csv.writer(open("L4_best_parameters.csv", "w"))
+    w = csv.writer(open(f"{conf.name}_best_parameters.csv", "w"))
         
     # loop over dictionary keys and values
     for key, val in optimal_parameter_values.items():
