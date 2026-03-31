@@ -13,9 +13,9 @@ def main():
         # BATSSatOnly(),
         ]
     for conf in confs:
-        run(conf)
-        run_seasons(conf)
-        for i in range(1,5):
+        # run(conf)
+        # run_seasons(conf)
+        for i in range(1,2):
             run_obs_reductions(conf, obs_ratio=0.5**i)
         # for i in range(1,2):
         run_obs_perturbations(conf)#, obs_ratio=0.5**i)

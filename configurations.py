@@ -1,3 +1,4 @@
+from pathlib import Path
 
 class Configuration:
     name='Template'
@@ -38,6 +39,8 @@ class OGSConf(Configuration):
     path_observations = "/g100_work/OGS_test2528/sspada00/SEAMLESS/BOUSSOLE_observations_w_sat.nc"  #supply path to observational file. The observational file is assumed to be containing 1D, or 2D arrays with (time) or (time, depth) dimensions, where time is always labeled as number of days from 01/01/1998 (it is daily resolution) and depth is always spaced by 1m (so N vertical layers means going N meters deep). For simplification no fluctuations in the sea level height are considered...
 
     model_directory = "/g100_scratch/userexternal/ateruzzi/WP6_ms/BOUSSOLE/LARGE_ENSEMBLE_SIMULATIONS/BOUSSOLE_allparameters"    # path to folder with the model ensemble simulations - the model outputs are picked across the ensemble from there
+    
+    output_dir = "/g100_work/OGS_test2528/sspada00/SEAMLESS/SCRIPTS4JOZEF/Parameter_calibration_1D_models/outputs"
 
     perturbed_parameters_listed = [
         'P3_p_q10',
@@ -83,10 +86,24 @@ class OGSConf(Configuration):
 
     model_start = 365    # this is the start of simulation period after spin up 
 
-    n_ens_members = 2000 # number of model ensemble members
+    n_ens_members = None # number of model ensemble members
+    
+    _save_dir=None
+    
+    @property
+    def save_dir(self):
+        if _save_dir is None:
+            _save_dir=Path(output_dir/self.name)
+            _save_dir.mkdir(parents=True, exist_ok=True)
+        return _save_dir
     
     def __init__(self):        
         self.model_types=[self._dict_model_variables[observed_type] for observed_type in self.observed_types]
+        
+        if self.n_ens_members is None:
+            path_model=Path(self.model_directory)
+            self.n_ens_members=len(path_model.glob('result_????.nc'))
+            print(f'Found {self.n_ens_members} in model directory: {path_model}')
 
 
 class Boussole(OGSConf):

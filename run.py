@@ -7,6 +7,7 @@ import csv
 import eatpy
 import calibrate_models as cm
 
+from mpi import mpi
 from configurations import chosen_conf
 
 
@@ -32,6 +33,8 @@ from configurations import chosen_conf
 
 
 def run(conf):
+    mpi.print(f"routine: run, conf: {conf.name}. Start!")
+    
     path_observations = conf.path_observations
     model_directory = conf.model_directory
     perturbed_parameters_listed = conf.perturbed_parameters_listed
@@ -42,7 +45,7 @@ def run(conf):
     model_start = conf.model_start
     n_ens_members = conf.n_ens_members
     
-    RMSE = np.zeros((n_ens_members))  # the skill score is stored here
+    RMSE = np.zeros((n_ens_members//mpi.size + (n_ens_members%mpi.size >0)))  # the skill score is stored here
 
     calibration_init = cm.calibrate_model(length_period = length_of_data, obs_types = observed_types, path_obs = path_observations,  start_period_obs = start_obs_index, mask = 0.)     # initialize to get the observations out
 
@@ -50,13 +53,21 @@ def run(conf):
 
     # a loop to match ensemble members to the observations and calculate RMSE
 
-    for member in range(1,n_ens_members+1): 
+    for rank_count, member in enumerate(range(1+mpi.rank,n_ens_members+1, mpi.size)): 
         
-        print(member)
+        print(member, flush=True)
 
         calibration_init = cm.calibrate_model(length_period = length_of_data, obs_types = observed_types, path_mod = model_directory+"/result_"+str(member).zfill(4)+".nc", mod_types = model_types, start_period_mod = model_start, observations = observations, observations_depths = observations_depths, observations_times = observations_times, n_depths_obs = observations_n_depths)
-        RMSE[member-1] = calibration_init.RMSE_metric()
+        RMSE[rank_count] = calibration_init.RMSE_metric()
         
+    RMSE=mpi.gather(RMSE)
+    if mpi.rank!=0:
+        return
+    
+    RMSE=np.array(RMSE).transpose().reshape((-1))
+    assert RMSE[n_ens_members:].sum()==0
+    RMSE=RMSE[:n_ens_members]
+    
     # minimize RMSE to find the index of the best performing ensemble member
 
     best_ensemble_member = np.argwhere(RMSE==np.amin(RMSE))[0][0]+1  # identify the ensemble member number corresponding to minimum RMSE
@@ -71,9 +82,9 @@ def run(conf):
             optimal_parameter_values.update({parameter:parameter_value})
             
             
-    np.savetxt(f"{conf.name}_RMSE_all.txt", RMSE)
+    np.savetxt(conf.save_dir/f"{conf.name}_RMSE_all.txt", RMSE)
 
-    w = csv.writer(open(f"{conf.name}_best_parameters.csv", "w"))
+    w = csv.writer(open(conf.save_dir/f"{conf.name}_best_parameters.csv", "w"))
         
     # loop over dictionary keys and values
     for key, val in optimal_parameter_values.items():
