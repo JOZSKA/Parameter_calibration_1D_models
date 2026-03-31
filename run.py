@@ -4,12 +4,11 @@ from netCDF4 import Dataset
 import numpy as np
 import csv
 # from matplotlib import pyplot as plt
-import eatpy
-import calibrate_models as cm
 
 from mpi import mpi
 from configurations import chosen_conf
-
+import eatpy
+import calibrate_models as cm
 
 # #below you need to set-up as appropriate
 # 
@@ -44,6 +43,8 @@ def run(conf):
     length_of_data = conf.length_of_data
     model_start = conf.model_start
     n_ens_members = conf.n_ens_members
+    
+    mpi.print(f"routine: run, conf: {conf.name}. n_ens_members={n_ens_members}.")
     
     RMSE = np.zeros((n_ens_members//mpi.size + (n_ens_members%mpi.size >0)))  # the skill score is stored here
 

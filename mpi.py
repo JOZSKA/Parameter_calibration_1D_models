@@ -35,7 +35,7 @@ class Mpi:
         if self.rank!=0:
             return
         if 'flush' not in kwargs:
-            kwargs['flsuh']=True
+            kwargs['flush']=True
         print(msg, *args, **kwargs)
             
             
