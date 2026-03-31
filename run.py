@@ -2,7 +2,6 @@
 
 import csv
 
-from netCDF4 import Dataset
 import numpy as np
 
 from mpi import mpi

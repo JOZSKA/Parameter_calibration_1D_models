@@ -1,12 +1,12 @@
 # This is to optimize parameters across different observational types and a number of model ensemble members (with perturbed parameters). The impact of introducing additional white multiplicative Gaussian noise to the observations is tested. The noise is defined with a "noise_scale" parameter,which amounts to the standard deviation of the Gauss distribution. Then optimization across 50 different realizations of the noise is performed (set by the variable "n_red_ens_members") and the spread of the optimizations is evaluated with standard deviation, which is saved. A lot of the code is analogous to run.py and run_obs_reductions.py, so look for comments there.
 
-from netCDF4 import Dataset
-import numpy as np
 import csv
-# from matplotlib import pyplot as plt
+
+import numpy as np
+
+from mpi import mpi
 import eatpy
 import calibrate_models as cm
-
 from configurations import chosen_conf
 
 
@@ -37,6 +37,8 @@ from configurations import chosen_conf
 # noise_scale = 0.275
 
 def run_obs_perturbations(conf, noise_scale=0.275):
+    mpi.print(f"routine: run_obs_perturbations, conf: {conf.name}. Start!")
+    
     path_observations = conf.path_observations
     model_directory = conf.model_directory
     perturbed_parameters_listed = conf.perturbed_parameters_listed
@@ -47,8 +49,11 @@ def run_obs_perturbations(conf, noise_scale=0.275):
     model_start = conf.model_start
     n_mod_ens_members = conf.n_ens_members
     n_red_ens_members = conf.n_red_ens_members
+    
+    mpi.print(f"routine: run_obs_perturbations, conf: {conf.name}. n_mod_ens_members={n_mod_ens_members}.")
 
-    RMSE = np.zeros((n_mod_ens_members, n_red_ens_members))   # here the final metric is stored as the number of ensemble members x number of sub-samplings
+    n_RMSE=n_mod_ens_members//mpi.size + (n_mod_ens_members%mpi.size >0)
+    RMSE = np.zeros((n_RMSE, n_red_ens_members))   # here the final metric is stored as the number of ensemble members x number of sub-samplings
 
 
     # read initial set of observations...
@@ -70,13 +75,23 @@ def run_obs_perturbations(conf, noise_scale=0.275):
             obs.update({observation_type:np.clip(observations_full[observation_type]*np.random.normal(loc=1.0, scale=noise_scale,size=len(observations_full[observation_type])),0,None)})
         obs_with_noise.update({str(noise):obs})
 
-    for member in range(1,n_mod_ens_members+1): 
+    for rank_count, member in enumerate(range(1+mpi.rank,n_mod_ens_members+1, mpi.size)): 
         
-        print(member)                
+        print(member, flush=True)                
 
         # read the full model data
 
-        init_mod = cm.calibrate_model(length_period = length_of_data, obs_types = observed_types, path_mod = model_directory+"/result_"+str(member).zfill(4)+".nc", mod_types = model_types, start_period_mod = model_start, observations = observations_full, observations_depths = observations_depths_full, observations_times = observations_times_full, n_depths_obs = observations_n_depths_full) 
+        init_mod = cm.calibrate_model(
+            length_period = length_of_data,
+            obs_types = observed_types,
+            path_mod = model_directory+"/result_"+str(member).zfill(4)+".nc",
+            mod_types = model_types,
+            start_period_mod = model_start,
+            observations = observations_full,
+            observations_depths = observations_depths_full,
+            observations_times = observations_times_full,
+            n_depths_obs = observations_n_depths_full,
+            ) 
         model_full = init_mod.provide_matching_model()    
 
         # run through the noise realizations
@@ -87,7 +102,17 @@ def run_obs_perturbations(conf, noise_scale=0.275):
         
             calibration_init = cm.calibrate_model(obs_types = observed_types, model=model_full, mod_types = model_types, observations = obs_with_noise[str(noise)])       
 
-            RMSE[member-1, noise] = calibration_init.RMSE_metric()
+            RMSE[rank_count, noise] = calibration_init.RMSE_metric()
+            
+    # RMSE reconstruction at rank 0
+    
+    RMSEs=mpi.gather(RMSE)
+    if mpi.rank!=0:
+        return
+    RMSE=np.array(RMSEs).transpose((1,0)).reshape((-1, n_red_ens_members))
+    assert len(RMSE)>=n_ens_members
+    assert RMSE[n_ens_members:].sum()==0
+    RMSE=RMSE[:n_ens_members]
 
     # derive the best performing model ensemble index and corresponding parameters for each noise realization 
 
@@ -110,14 +135,15 @@ def run_obs_perturbations(conf, noise_scale=0.275):
         optimal_parameter_values.update({parameter+"_std":np.std(parameters[par_index,:])})
             
 
+    with open(conf.save_dir/f"{conf.name}_best_parameters_obs_noise_"+str(noise_scale)+".csv", "w") as csv_file:
+        w = csv.writer(csv_file)
+            
+        # loop over dictionary keys and values
+        for key, val in optimal_parameter_values.items():
+            # write every key and value to file
+            w.writerow([key, val])
 
-    w = csv.writer(open(f"{conf.name}_best_parameters_obs_noise_"+str(noise_scale)+".csv", "w"))
-        
-    # loop over dictionary keys and values
-    for key, val in optimal_parameter_values.items():
-        # write every key and value to file
-        w.writerow([key, val])
-
+    mpi.print(f"routine: run_obs_perturbations, conf: {conf.name}. Done!")
 
 def main():
     run_obs_perturbations(chosen_conf)

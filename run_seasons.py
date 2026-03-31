@@ -2,9 +2,7 @@
 
 import csv
 
-from netCDF4 import Dataset
 import numpy as np
-
 
 from mpi import mpi
 import eatpy
@@ -143,7 +141,7 @@ def run_seasons(conf):
             # write every key and value to file
             w.writerow([key, val])
             
-    mpi.print(f"routine: run, conf: {conf.name}. Done!")
+    mpi.print(f"routine: run_seasons, conf: {conf.name}. Done!")
 
 def main():
     run_seasons(chosen_conf)
