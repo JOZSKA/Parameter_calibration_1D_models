@@ -45,7 +45,7 @@ def run_obs_perturbations(conf, noise_scale=0.275):
     start_obs_index = conf.start_obs_index
     length_of_data = conf.length_of_data
     model_start = conf.model_start
-    n_ens_members = conf.n_ens_members
+    n_mod_ens_members = conf.n_ens_members
     n_red_ens_members = conf.n_red_ens_members
 
     RMSE = np.zeros((n_mod_ens_members, n_red_ens_members))   # here the final metric is stored as the number of ensemble members x number of sub-samplings

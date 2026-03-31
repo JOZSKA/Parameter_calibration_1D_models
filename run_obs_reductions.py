@@ -44,7 +44,7 @@ def run_obs_reductions(conf, obs_ratio=0.25):
     start_obs_index = conf.start_obs_index
     length_of_data = conf.length_of_data
     model_start = conf.model_start
-    n_ens_members = conf.n_ens_members
+    n_mod_ens_members = conf.n_ens_members
     n_red_ens_members = conf.n_red_ens_members
     
     
