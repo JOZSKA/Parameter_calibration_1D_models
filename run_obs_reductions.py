@@ -36,7 +36,7 @@ from configurations import chosen_conf
 
 
 def run_obs_reductions(conf, obs_ratio=0.25):
-    mpi.print(f"routine: run_obs_reductions, conf: {conf.name}. Start!")
+    mpi.print(f"routine: run_obs_reductions, obs_ratio: {obs_ratio}, conf: {conf.name}. Start!")
     
     path_observations = conf.path_observations
     model_directory = conf.model_directory
@@ -49,7 +49,7 @@ def run_obs_reductions(conf, obs_ratio=0.25):
     n_mod_ens_members = conf.n_ens_members
     n_red_ens_members = conf.n_red_ens_members
     
-    mpi.print(f"routine: run_obs_reductions, conf: {conf.name}. n_mod_ens_members={n_mod_ens_members}.")
+    mpi.print(f"routine: run_obs_reductions, obs_ratio: {obs_ratio}, conf: {conf.name}. n_mod_ens_members={n_mod_ens_members}.")
     
     
     n_RMSE=n_mod_ens_members//mpi.size + (n_mod_ens_members%mpi.size >0)
@@ -164,7 +164,7 @@ def run_obs_reductions(conf, obs_ratio=0.25):
             w.writerow([key, val])
 
  
-    mpi.print(f"routine: run_obs_reductions, conf: {conf.name}. Done!")
+    mpi.print(f"routine: run_obs_reductions, obs_ratio: {obs_ratio}, conf: {conf.name}. Done!")
 
 
 def main():

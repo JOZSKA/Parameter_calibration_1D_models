@@ -37,7 +37,7 @@ from configurations import chosen_conf
 # noise_scale = 0.275
 
 def run_obs_perturbations(conf, noise_scale=0.275):
-    mpi.print(f"routine: run_obs_perturbations, conf: {conf.name}. Start!")
+    mpi.print(f"routine: run_obs_perturbations, noise_scale: {noise_scale}, conf: {conf.name}. Start!")
     
     path_observations = conf.path_observations
     model_directory = conf.model_directory
@@ -50,7 +50,7 @@ def run_obs_perturbations(conf, noise_scale=0.275):
     n_mod_ens_members = conf.n_ens_members
     n_red_ens_members = conf.n_red_ens_members
     
-    mpi.print(f"routine: run_obs_perturbations, conf: {conf.name}. n_mod_ens_members={n_mod_ens_members}.")
+    mpi.print(f"routine: run_obs_perturbations, noise_scale: {noise_scale}, conf: {conf.name}. n_mod_ens_members={n_mod_ens_members}.")
 
     n_RMSE=n_mod_ens_members//mpi.size + (n_mod_ens_members%mpi.size >0)
     RMSE = np.zeros((n_RMSE, n_red_ens_members))   # here the final metric is stored as the number of ensemble members x number of sub-samplings
@@ -143,7 +143,7 @@ def run_obs_perturbations(conf, noise_scale=0.275):
             # write every key and value to file
             w.writerow([key, val])
 
-    mpi.print(f"routine: run_obs_perturbations, conf: {conf.name}. Done!")
+    mpi.print(f"routine: run_obs_perturbations, noise_scale: {noise_scale}, conf: {conf.name}. Done!")
 
 def main():
     run_obs_perturbations(chosen_conf)
