@@ -4,7 +4,7 @@
 from netCDF4 import Dataset
 import numpy as np
 import csv
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 
 def distance(a,b):
     return np.abs(a-b)
@@ -26,7 +26,7 @@ def read_observations(path_obs, observed_types, start_obs_index, end_obs_index, 
         if obs.variables[observed_type][:].ndim==2:  # if the variable is 2D (time x depth)
             observations_spec_inputs = obs.variables[observed_type][:]
             observations_spec_inputs = observations_spec_inputs[start_obs_index:end_obs_index,:] 
-            relevant = (observations_spec_inputs != mask) & ~np.isnan(observations_spec_inputs) 
+            relevant = (observations_spec_inputs != mask) & ~np.isnan(observations_spec_inputs) & observations_spec_inputs.mask==False
             observations_spec = observations_spec_inputs[relevant]  # flattened array with observations
             observations_spec_depth = np.argwhere(relevant)[:,1]  # flattened array with observational depths (adding 0.5 puts it in the centre of the 1m thick layer)  
             observations_spec_time = np.argwhere(relevant)[:,0]  # flattened array with times of observations
@@ -49,7 +49,9 @@ def read_observations(path_obs, observed_types, start_obs_index, end_obs_index, 
     obs.close()
     
     
-    return observations, observations_depths, observations_times, n_depths_obs
+    return observations, observations_depths, observations_times, n_depths_obs #probably wrong here!
+    # return observations, observations_depths, observations_times, observations_n_data # correction?
+
 
 # match depth indexes between models and observations   
     
@@ -123,7 +125,9 @@ class calibrate_model:
             self.path_obs = kwargs["path_obs"]
             self.start_period_obs = kwargs["start_period_obs"]
             self.mask = kwargs["mask"]
-            (self.observations, self.observations_depths, self.observations_times, self.n_depths_obs) = read_observations(self.path_obs, self.obs_types, self.start_period_obs, self.start_period_obs + self.length_period, self.mask) 
+            (self.observations, self.observations_depths, self.observations_times, self.n_depths_obs) = read_observations(self.path_obs, self.obs_types, self.start_period_obs, self.start_period_obs + self.length_period, self.mask)
+            
+            
         if "mod_types" in kwargs:                                        
             self.mod_types = kwargs["mod_types"]
             if "model" in kwargs:
@@ -186,7 +190,7 @@ class calibrate_model:
         
     def RMSE_metric(self):  # calculates RMSE metric
         RMSE_out = []
-        for observed_type, model_type in zip(self.obs_types, self.mod_types):
+        for observed_type, model_type in zip(self.obs_types, self.mod_types):            
             RMSE_out.append(np.sqrt(np.mean((self.observations[observed_type] - self.model_matching_obs[model_type])**2))/np.std(self.observations[observed_type]))
         return np.mean(RMSE_out)
         

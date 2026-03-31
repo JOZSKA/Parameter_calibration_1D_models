@@ -7,10 +7,10 @@ from configurations import Boussole, BoussoleSatOnly, BATS, BATSSatOnly
 
 def main():
     confs=[
-        Boussole(),
+        # Boussole(),
         BoussoleSatOnly(),
-        BATS(),
-        BATSSatOnly(),
+        # BATS(),
+        # BATSSatOnly(),
         ]
     for conf in confs:
         run(conf)

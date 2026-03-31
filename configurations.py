@@ -1,4 +1,3 @@
-chosen_conf=BATS()
 
 class Configuration:
     name='Template'
@@ -87,7 +86,7 @@ class OGSConf(Configuration):
     n_ens_members = 2000 # number of model ensemble members
     
     def __init__(self):        
-        self.model_types=[self._dict_model_variables['observed_type'] for observed_type in self.observed_types]
+        self.model_types=[self._dict_model_variables[observed_type] for observed_type in self.observed_types]
 
 
 class Boussole(OGSConf):
@@ -149,3 +148,4 @@ class BATSSatOnly(BATS):
         # 'Insitu_chlorophyll',
         ]   # observed types of variables
 
+chosen_conf=BATS()
