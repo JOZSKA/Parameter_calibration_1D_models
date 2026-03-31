@@ -19,34 +19,35 @@ def read_observations(path_obs, observed_types, start_obs_index, end_obs_index, 
     observations_times = {}  # here the days of observations are stored as 1D arrays
     observations_n_data = {}  # number of observations for each type
 
-    obs = Dataset(path_obs)  # read in the observational file
+    # obs = Dataset(path_obs)  # read in the observational file
+    with Dataset(path_obs) as obs:
 
-    for observed_type in observed_types:   # read in all the observations into "observations" dictionary
-    
-        if obs.variables[observed_type][:].ndim==2:  # if the variable is 2D (time x depth)
-            observations_spec_inputs = obs.variables[observed_type][:]
-            observations_spec_inputs = observations_spec_inputs[start_obs_index:end_obs_index,:] 
-            relevant = (observations_spec_inputs != mask) & ~np.isnan(observations_spec_inputs) & observations_spec_inputs.mask==False
-            observations_spec = observations_spec_inputs[relevant]  # flattened array with observations
-            observations_spec_depth = np.argwhere(relevant)[:,1]  # flattened array with observational depths (adding 0.5 puts it in the centre of the 1m thick layer)  
-            observations_spec_time = np.argwhere(relevant)[:,0]  # flattened array with times of observations
-            n_depths_obs = observations_spec_inputs.shape[1]
-  
-        else:  # this means the variable is 1D (time)
-            observations_spec_inputs = np.array(obs.variables[observed_type])[start_obs_index:end_obs_index]
-            relevant = (observations_spec_inputs != mask) & ~np.isnan(observations_spec_inputs) 
-            observations_spec = observations_spec_inputs[relevant]  # flattened array with observations 
-            observations_spec_time = np.argwhere(relevant)[:,0]  # flattened array with times of observations
-            observations_spec_depth = np.zeros((len(observations_spec_time))) #formally set "surface" data depths to 0.5m 
-    
-    # build the output dictionaries
+        for observed_type in observed_types:   # read in all the observations into "observations" dictionary
         
-        observations.update({observed_type:observations_spec})
-        observations_depths.update({observed_type:observations_spec_depth}) 
-        observations_times.update({observed_type:observations_spec_time}) 
-        observations_n_data.update({observed_type:len(observations_spec)}) 
+            if obs.variables[observed_type][:].ndim==2:  # if the variable is 2D (time x depth)
+                observations_spec_inputs = obs.variables[observed_type][:]
+                observations_spec_inputs = observations_spec_inputs[start_obs_index:end_obs_index,:] 
+                relevant = (observations_spec_inputs != mask) & ~np.isnan(observations_spec_inputs) & observations_spec_inputs.mask==False
+                observations_spec = observations_spec_inputs[relevant]  # flattened array with observations
+                observations_spec_depth = np.argwhere(relevant)[:,1]  # flattened array with observational depths (adding 0.5 puts it in the centre of the 1m thick layer)  
+                observations_spec_time = np.argwhere(relevant)[:,0]  # flattened array with times of observations
+                n_depths_obs = observations_spec_inputs.shape[1]
+    
+            else:  # this means the variable is 1D (time)
+                observations_spec_inputs = np.array(obs.variables[observed_type])[start_obs_index:end_obs_index]
+                relevant = (observations_spec_inputs != mask) & ~np.isnan(observations_spec_inputs) 
+                observations_spec = observations_spec_inputs[relevant]  # flattened array with observations 
+                observations_spec_time = np.argwhere(relevant)[:,0]  # flattened array with times of observations
+                observations_spec_depth = np.zeros((len(observations_spec_time))) #formally set "surface" data depths to 0.5m 
+        
+        # build the output dictionaries
+            
+            observations.update({observed_type:observations_spec})
+            observations_depths.update({observed_type:observations_spec_depth}) 
+            observations_times.update({observed_type:observations_spec_time}) 
+            observations_n_data.update({observed_type:len(observations_spec)}) 
 
-    obs.close()
+    # obs.close()
     
     
     return observations, observations_depths, observations_times, n_depths_obs #probably wrong here!
@@ -57,8 +58,9 @@ def read_observations(path_obs, observed_types, start_obs_index, end_obs_index, 
     
 def match_depth_indexes(path_mod, n_depths_obs, model_start, model_end):
 
-    modinp = Dataset(path_mod)
-    depths = np.abs(np.array(modinp.variables["z"])[model_start:model_end,:,0,0].mean(axis=0)) 
+    # modinp = Dataset(path_mod)
+    with Dataset(path_mod) as modinp:
+        depths = np.abs(np.array(modinp.variables["z"])[model_start:model_end,:,0,0].mean(axis=0)) 
     n_depths_mod = len(depths)  # number of model vertical layers  
     indexes = np.zeros((n_depths_obs))  # records the model vertical index corresponding to each observational vertical layer
             
@@ -72,28 +74,29 @@ def match_depth_indexes(path_mod, n_depths_obs, model_start, model_end):
     
 def match_model_with_observations(path_mod, model_types, observed_types, observations_depths, observations_times, model_start_index, model_end_index, indexes):
 
-    modinp = Dataset(path_mod)
+    # modinp = Dataset(path_mod)
+    with Dataset(path_mod) as modinp:
 
-    model_obs_equiv_output = {}
+        model_obs_equiv_output = {}
 
-    for observed_type, model_type in zip(observed_types, model_types):   # run through all observed variables
-        
-        if ("total_chlorophyll_calculator_result" in model_type) & ~("total_chlorophyll_calculator_result" in modinp.variables.keys()):
-            model = modinp.variables["P1_Chl"][:] + modinp.variables["P2_Chl"][:] + modinp.variables["P3_Chl"][:] + modinp.variables["P4_Chl"][:] # model data for specific type
-        else:                       
-            model = modinp.variables[model_type][:]  # model data for specific type
+        for observed_type, model_type in zip(observed_types, model_types):   # run through all observed variables
             
-        model = model[model_start_index:model_end_index,:,0,0]
+            if ("total_chlorophyll_calculator_result" in model_type) & ~("total_chlorophyll_calculator_result" in modinp.variables.keys()):
+                model = modinp.variables["P1_Chl"][:] + modinp.variables["P2_Chl"][:] + modinp.variables["P3_Chl"][:] + modinp.variables["P4_Chl"][:] # model data for specific type
+            else:                       
+                model = modinp.variables[model_type][:]  # model data for specific type
+                
+            model = model[model_start_index:model_end_index,:,0,0]
 
-        observations_n_data = len(observations_times[observed_type])
-                 
-        model_obs_equiv = np.zeros((observations_n_data))  # this is the model output corresponding to the observational array  
+            observations_n_data = len(observations_times[observed_type])
+                    
+            model_obs_equiv = np.zeros((observations_n_data))  # this is the model output corresponding to the observational array  
 
-        for datapoint in range(0, observations_n_data): # here you construct the model output that corresponds to the observations                
-                                         
-           model_obs_equiv[datapoint] = model[observations_times[observed_type][datapoint], int(indexes[int(observations_depths[observed_type][datapoint])])] 
-           
-        model_obs_equiv_output.update({model_type : model_obs_equiv})
+            for datapoint in range(0, observations_n_data): # here you construct the model output that corresponds to the observations                
+                                            
+            model_obs_equiv[datapoint] = model[observations_times[observed_type][datapoint], int(indexes[int(observations_depths[observed_type][datapoint])])] 
+            
+            model_obs_equiv_output.update({model_type : model_obs_equiv})
        
     return model_obs_equiv_output
    
