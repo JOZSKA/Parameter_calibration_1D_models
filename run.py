@@ -91,6 +91,8 @@ def run(conf):
         # write every key and value to file
         w.writerow([key, val])
         
+    mpi.print(f"routine: run, conf: {conf.name}. Done!")
+        
 
 def main():
     run(chosen_conf)

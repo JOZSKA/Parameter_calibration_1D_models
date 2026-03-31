@@ -92,10 +92,10 @@ class OGSConf(Configuration):
     
     @property
     def save_dir(self):
-        if _save_dir is None:
-            _save_dir=Path(output_dir/self.name)
-            _save_dir.mkdir(parents=True, exist_ok=True)
-        return _save_dir
+        if self._save_dir is None:
+            self._save_dir=Path(self.output_dir/self.name)
+            self._save_dir.mkdir(parents=True, exist_ok=True)
+        return self._save_dir
     
     def __init__(self):        
         self.model_types=[self._dict_model_variables[observed_type] for observed_type in self.observed_types]
