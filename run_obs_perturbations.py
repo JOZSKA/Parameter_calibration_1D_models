@@ -109,10 +109,10 @@ def run_obs_perturbations(conf, noise_scale=0.275):
     RMSEs=mpi.gather(RMSE)
     if mpi.rank!=0:
         return
-    RMSE=np.array(RMSEs).transpose((1,0)).reshape((-1, n_red_ens_members))
-    assert len(RMSE)>=n_ens_members
-    assert RMSE[n_ens_members:].sum()==0
-    RMSE=RMSE[:n_ens_members]
+    RMSE=np.array(RMSEs).transpose((1,0,2)).reshape((-1, n_red_ens_members))
+    assert len(RMSE)>=n_mod_ens_members
+    assert RMSE[n_mod_ens_members:].sum()==0
+    RMSE=RMSE[:n_mod_ens_members]
 
     # derive the best performing model ensemble index and corresponding parameters for each noise realization 
 
@@ -135,7 +135,7 @@ def run_obs_perturbations(conf, noise_scale=0.275):
         optimal_parameter_values.update({parameter+"_std":np.std(parameters[par_index,:])})
             
 
-    with open(conf.save_dir/f"{conf.name}_best_parameters_obs_noise_"+str(noise_scale)+".csv", "w") as csv_file:
+    with open(conf.save_dir/f"{conf.name}_best_parameters_obs_noise_{noise_scale}.csv", "w") as csv_file:
         w = csv.writer(csv_file)
             
         # loop over dictionary keys and values

@@ -81,7 +81,8 @@ def match_model_with_observations(path_mod, model_types, observed_types, observa
 
         for observed_type, model_type in zip(observed_types, model_types):   # run through all observed variables
             
-            if ("total_chlorophyll_calculator_result" in model_type) & ~("total_chlorophyll_calculator_result" in modinp.variables.keys()):
+            if ("total_chlorophyll_calculator_result" in model_type) & ~("total_chlorophyll_calculator_result" in modinp.variables.keys()):  # error?
+            # if ("total_chlorophyll_calculator_result" == model_type) & ~("total_chlorophyll_calculator_result" in modinp.variables.keys()):  # is this the correct one?
                 model = modinp.variables["P1_Chl"][:] + modinp.variables["P2_Chl"][:] + modinp.variables["P3_Chl"][:] + modinp.variables["P4_Chl"][:] # model data for specific type
             else:                       
                 model = modinp.variables[model_type][:]  # model data for specific type
@@ -94,9 +95,9 @@ def match_model_with_observations(path_mod, model_types, observed_types, observa
 
             for datapoint in range(0, observations_n_data): # here you construct the model output that corresponds to the observations                
                                             
-            model_obs_equiv[datapoint] = model[observations_times[observed_type][datapoint], int(indexes[int(observations_depths[observed_type][datapoint])])] 
+                model_obs_equiv[datapoint] = model[observations_times[observed_type][datapoint], int(indexes[int(observations_depths[observed_type][datapoint])])] 
             
-            model_obs_equiv_output.update({model_type : model_obs_equiv})
+            model_obs_equiv_output.update({observed_type : model_obs_equiv})
        
     return model_obs_equiv_output
    
@@ -179,22 +180,22 @@ class calibrate_model:
             for year in range(0,22):
                 time.append(np.arange(int(year*365.25)+31+28+31+30+31+30+31+31, int((year+1)*365.25)-31))
         time = np.concatenate(time)
-        for observed_type, model_type in zip(self.obs_types, self.mod_types):
+        for observed_type in self.obs_types:
             observations_out.update({observed_type:self.observations[observed_type][np.isin(self.observations_times[observed_type], time)]})
-            model_out.update({model_type:self.model_matching_obs[model_type][np.isin(self.observations_times[observed_type], time)]})
+            model_out.update({observed_type:self.model_matching_obs[observed_type][np.isin(self.observations_times[observed_type], time)]})
             
         return observations_out, model_out            
         
     def R_metric(self):  # calculates R (Pearson correlation) metric
         R_out = []
-        for observed_type, model_type in zip(self.obs_types, self.mod_types):
-             R_out.append(np.corrcoef(self.observations[observed_type], self.model_matching_obs[model_type])[0][1])
+        for observed_type in self.obs_types:
+             R_out.append(np.corrcoef(self.observations[observed_type], self.model_matching_obs[observed_type])[0][1])
         return np.mean(R_out)
         
     def RMSE_metric(self):  # calculates RMSE metric
         RMSE_out = []
-        for observed_type, model_type in zip(self.obs_types, self.mod_types):            
-            RMSE_out.append(np.sqrt(np.mean((self.observations[observed_type] - self.model_matching_obs[model_type])**2))/np.std(self.observations[observed_type]))
+        for observed_type in self.obs_types:
+            RMSE_out.append(np.sqrt(np.mean((self.observations[observed_type] - self.model_matching_obs[observed_type])**2))/np.std(self.observations[observed_type]))
         return np.mean(RMSE_out)
         
         

@@ -178,6 +178,11 @@ class L4(BaseConfiguration):
     # only for obs_reduction and obs_perturbation: 
     
     n_red_ens_members = 50  # this is the number of random realizations of sub-sampling of the observation data / of the perturbation noise
+    
+    
+class TestConf(BATS):
+    name='TestConf'
+    n_ens_members=2
 
 
-chosen_conf=BATS()
+chosen_conf=TestConf()

@@ -113,9 +113,9 @@ def run_obs_reductions(conf, obs_ratio=0.25):
         
             model = {}
         
-            for observation_type, model_type in zip(observed_types,model_types):
+            for observation_type in observed_types:
             
-                model.update({model_type:model_full[model_type][total_indexes[str(reduction)][observation_type]][:num_obs[observation_type]]}) 
+                model.update({observation_type:model_full[observation_type][total_indexes[str(reduction)][observation_type]][:num_obs[observation_type]]}) 
         
             # here the RMSE metric is calculated from the sub-sampled observations and model equivalents. It is then stored in the RMSE 2D array..
         
@@ -129,10 +129,10 @@ def run_obs_reductions(conf, obs_ratio=0.25):
     RMSEs=mpi.gather(RMSE)
     if mpi.rank!=0:
         return
-    RMSE=np.array(RMSEs).transpose((1,0)).reshape((-1, n_red_ens_members))
-    assert len(RMSE)>=n_ens_members
-    assert RMSE[n_ens_members:].sum()==0
-    RMSE=RMSE[:n_ens_members]
+    RMSE=np.array(RMSEs).transpose((1,0,2)).reshape((-1, n_red_ens_members))
+    assert len(RMSE)>=n_mod_ens_members
+    assert RMSE[n_mod_ens_members:].sum()==0
+    RMSE=RMSE[:n_mod_ens_members]
 
     # derive the best performing model ensemble index and corresponding parameters for each sub-sampling 
 
