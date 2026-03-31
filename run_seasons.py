@@ -1,12 +1,14 @@
 # identifies how parameter optimization changes with season - much of the code has similar structure than run.py (so look for comments there), with some modifications..
 
+import csv
+
 from netCDF4 import Dataset
 import numpy as np
-import csv
-# from matplotlib import pyplot as plt
+
+
+from mpi import mpi
 import eatpy
 import calibrate_models as cm
-
 from configurations import chosen_conf
 
 
@@ -31,6 +33,8 @@ from configurations import chosen_conf
 # n_ens_members = 5000
 
 def run_seasons(conf):
+    mpi.print(f"routine: run_seasons, conf: {conf.name}. Start!")
+    
     path_observations = conf.path_observations
     model_directory = conf.model_directory
     perturbed_parameters_listed = conf.perturbed_parameters_listed
@@ -40,10 +44,14 @@ def run_seasons(conf):
     length_of_data = conf.length_of_data
     model_start = conf.model_start
     n_ens_members = conf.n_ens_members
-
+    
+    mpi.print(f"routine: run_seasons, conf: {conf.name}. n_ens_members={n_ens_members}.")
+    
     # RMSE is defined as a dictionary for each season
-
-    RMSE = {"winter":np.zeros((n_ens_members)), "spring":np.zeros((n_ens_members)), "summer":np.zeros((n_ens_members)), "autumn":np.zeros((n_ens_members))} 
+    
+    seasons = ["winter", "spring", "summer", "autumn"]
+    n_RMSE=n_ens_members//mpi.size + (n_ens_members%mpi.size >0)
+    RMSE = {season:np.zeros((n_RMSE)) for season in seasons}
 
     # this is to get the full observations across all seasons
 
@@ -52,36 +60,71 @@ def run_seasons(conf):
     (observations_full, observations_depths_full, observations_times_full, observations_n_depths_full) = init_obs.provide_observations() 
 
     # loop through model ensemble members
-
-    for member in range(1,n_ens_members+1): 
+    
+    for rank_count, member in enumerate(range(1+mpi.rank,n_ens_members+1, mpi.size)): 
         
-        print(member)     
+        print(member, flush=True)     
         
         # this is to get the full model data matching the full observations (across all seasons)
         
-        init_mod = cm.calibrate_model(length_period = length_of_data, obs_types = observed_types, path_mod = model_directory+"/result_"+str(member).zfill(4)+".nc", mod_types = model_types, start_period_mod = model_start, observations = observations_full, observations_depths = observations_depths_full, observations_times = observations_times_full, n_depths_obs = observations_n_depths_full) 
+        init_mod = cm.calibrate_model(
+            length_period = length_of_data,
+            obs_types = observed_types,
+            path_mod = model_directory+"/result_"+str(member).zfill(4)+".nc",
+            mod_types = model_types,
+            start_period_mod = model_start,
+            observations = observations_full,
+            observations_depths = observations_depths_full,
+            observations_times = observations_times_full,
+            n_depths_obs = observations_n_depths_full,
+            ) 
         model_full = init_mod.provide_matching_model()           
 
         # loop through seasons
 
-        for season in ["winter", "spring", "summer", "autumn"]:
+        for season in seasons:
         
             # this is to select a specific season from obseervations and model data
         
-            season_init = cm.calibrate_model(length_period = length_of_data, obs_types = observed_types, model=model_full, mod_types = model_types, observations = observations_full, observations_times = observations_times_full, season = season)       
+            season_init = cm.calibrate_model(
+                length_period = length_of_data,
+                obs_types = observed_types,
+                model=model_full,
+                mod_types = model_types,
+                observations = observations_full,
+                observations_times = observations_times_full,
+                season = season,
+                )       
             (observations, model) = season_init.select_seasons()
             
             # use the season-specific data to calibrate the model and store in RMSE dictionary
             
-            calibration_init = cm.calibrate_model(length_period = length_of_data, obs_types = observed_types, mod_types = model_types, model=model, observations = observations)
-            RMSE[season][member-1] = calibration_init.RMSE_metric()
+            calibration_init = cm.calibrate_model(
+                length_period = length_of_data,
+                obs_types = observed_types,
+                mod_types = model_types,
+                model=model,
+                observations = observations,
+                )
+            RMSE[season][rank_count] = calibration_init.RMSE_metric()
+    
+    # RMSE reconstruction at rank 0
+    
+    RMSEs=mpi.gather(RMSE)
+    if mpi.rank!=0:
+        return
+    RMSE={season:np.array([RMSE_part[season] for RMSE_part in RMSEs]).transpose().reshape((-1)) for season in seasons}
+    for season in seasons:
+        assert len(RMSE[season])>=n_ens_members
+        assert RMSE[season][n_ens_members:].sum()==0
+        RMSE[season]=RMSE[season][:n_ens_members]
 
     best_ensemble_member = {}
     optimal_parameter_values = {}
 
     # run through seasons, identify the index of the best performing ensemble member and store the parameter values
             
-    for season in ["winter", "spring", "summer", "autumn"]:
+    for season in seasons:
         best_ensemble_member.update({season:np.argwhere(RMSE[season]==np.amin(RMSE[season]))[0][0]+1})  # identify the ensemble member number corresponding to minimum RMSE
 
         for parameter in perturbed_parameters_listed:
@@ -90,15 +133,17 @@ def run_seasons(conf):
                 optimal_parameter_values.update({season+"_"+parameter:parameter_value})
             
             
-        np.savetxt(f"{conf.name}_RMSE_"+season+".txt", RMSE[season])
+        np.savetxt(conf.save_dir/f"{conf.name}_RMSE_{season}.txt", RMSE[season])
 
-
-    w = csv.writer(open(f"{conf.name}_best_parameters_seasons.csv", "w"))
-        
-    # loop over dictionary keys and values
-    for key, val in optimal_parameter_values.items():
-        # write every key and value to file
-        w.writerow([key, val])
+    with open(conf.save_dir/f"{conf.name}_best_parameters_seasons.csv", "w") as csv_file:
+        w = csv.writer(csv_file)
+            
+        # loop over dictionary keys and values
+        for key, val in optimal_parameter_values.items():
+            # write every key and value to file
+            w.writerow([key, val])
+            
+    mpi.print(f"routine: run, conf: {conf.name}. Done!")
 
 def main():
     run_seasons(chosen_conf)

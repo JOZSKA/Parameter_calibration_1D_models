@@ -1,14 +1,15 @@
 # identifies the best matching parameters to the observations across an ensemble of runs
 
+import csv
+
 from netCDF4 import Dataset
 import numpy as np
-import csv
-# from matplotlib import pyplot as plt
 
 from mpi import mpi
-from configurations import chosen_conf
 import eatpy
 import calibrate_models as cm
+from configurations import chosen_conf
+
 
 # #below you need to set-up as appropriate
 # 
@@ -58,14 +59,26 @@ def run(conf):
         
         print(member, flush=True)
 
-        calibration_init = cm.calibrate_model(length_period = length_of_data, obs_types = observed_types, path_mod = model_directory+"/result_"+str(member).zfill(4)+".nc", mod_types = model_types, start_period_mod = model_start, observations = observations, observations_depths = observations_depths, observations_times = observations_times, n_depths_obs = observations_n_depths)
+        calibration_init = cm.calibrate_model(
+            length_period = length_of_data,
+            obs_types = observed_types,
+            path_mod = model_directory+"/result_"+str(member).zfill(4)+".nc",
+            mod_types = model_types,
+            start_period_mod = model_start,
+            observations = observations,
+            observations_depths = observations_depths,
+            observations_times = observations_times,
+            n_depths_obs = observations_n_depths,
+            )
         RMSE[rank_count] = calibration_init.RMSE_metric()
         
-    RMSE=mpi.gather(RMSE)
+    # RMSE reconstruction at rank 0
+    
+    RMSEs=mpi.gather(RMSE)
     if mpi.rank!=0:
         return
-    
-    RMSE=np.array(RMSE).transpose().reshape((-1))
+    RMSE=np.array(RMSEs).transpose().reshape((-1))
+    assert len(RMSE)>=n_ens_members
     assert RMSE[n_ens_members:].sum()==0
     RMSE=RMSE[:n_ens_members]
     
@@ -84,13 +97,14 @@ def run(conf):
             
             
     np.savetxt(conf.save_dir/f"{conf.name}_RMSE_all.txt", RMSE)
-
-    w = csv.writer(open(conf.save_dir/f"{conf.name}_best_parameters.csv", "w"))
+    
+    with open(conf.save_dir/f"{conf.name}_best_parameters.csv", "w") as csv_file:
+        w = csv.writer(csv_file)
         
-    # loop over dictionary keys and values
-    for key, val in optimal_parameter_values.items():
-        # write every key and value to file
-        w.writerow([key, val])
+        # loop over dictionary keys and values
+        for key, val in optimal_parameter_values.items():
+            # write every key and value to file
+            w.writerow([key, val])
         
     mpi.print(f"routine: run, conf: {conf.name}. Done!")
         
