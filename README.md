@@ -16,6 +16,6 @@ conda activate eat
 ```
 - Run with MPI with the available number of processes:
 ```
-AVAIL_TASKS=100
-mpiexec -n $AVAIL_TASKS python main.py
+AVAIL_PROCS=100
+mpiexec -n $AVAIL_PROCS python main.py
 ```
